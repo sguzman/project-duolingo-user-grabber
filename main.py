@@ -1,5 +1,4 @@
 import atexit
-import duolingo
 import json
 import logging
 import os
@@ -7,6 +6,10 @@ import typing
 from typing import Dict
 from typing import List
 from typing import Optional
+
+
+import lib
+import lib.duolingo as duolingo
 
 
 env_json_file: str = os.path.abspath('./env.json')
