@@ -5,6 +5,7 @@ import os
 import psycopg2
 import time
 from typing import List
+from typing import Tuple
 
 import lib.duolingo as duolingo
 
@@ -46,6 +47,8 @@ def init_env() -> None:
 
 
 def init_atexit() -> None:
+    global conn
+
     def end():
         conn.close()
         logging.info('bye')
@@ -54,6 +57,8 @@ def init_atexit() -> None:
 
 
 def init_duo_log() -> None:
+    global env
+
     usr: str = env['DUO_USER']
     pss: str = env['DUO_PASS']
 
@@ -66,6 +71,7 @@ def init_duo_log() -> None:
 
 
 def init_logging() -> None:
+    global env
     name: str = env['name']
 
     logging.basicConfig(
@@ -93,44 +99,72 @@ def init() -> None:
 
 
 def sleep() -> None:
+    global env
+
     logging.info('Sleeping for %d', env['sleep'])
     time.sleep(env['sleep'])
 
 
-def get_random_user() -> str:
+def get_random_user() -> Tuple[int, str]:
+    global conn
+
     cur = conn.cursor()
-    sql = 'SELECT username FROM duolingo.data.users ORDER BY RANDOM() LIMIT 1'
+    sql = 'SELECT id, username ' \
+          'FROM duolingo.data.users ' \
+          'ORDER BY RANDOM() LIMIT 1'
     cur.execute(sql)
 
     rows = cur.fetchall()
-    user = rows[0][0]
+    user = rows[0]
     logging.info('Got random user %s', user)
 
     return user
 
 
-def get_friends(name: str) -> List[str]:
-    logging.info('Querying friends for %s', name)
+def get_friends(tup: Tuple[int, str]) -> List[Tuple[int, str]]:
+    global lingo
+
+    name: str = tup[1]
+    logging.info('Querying friends for %s', tup)
 
     lingo.set_username(name)
     friends_resp = lingo.get_friends()
-    friends: List[str] = []
+    friends: List[Tuple[int, str]] = []
 
     for fob in friends_resp:
-        fob: str = fob['username']
-        friends.append(fob)
+        user: str = fob['username']
+        idd: int = fob['id']
+        tup: Tuple[int, str] = (idd, user)
+
+        friends.append(tup)
 
     logging.info('Found friends:')
     logging.info(friends)
     return friends
 
 
+def write_sql(users: List[Tuple[int, str]]) -> None:
+    logging.info('Writing new users down')
+    sql = 'INSERT INTO ' \
+          'duolingo.data.users (id, username) VALUES (%s, %s) ' \
+          'ON CONFLICT DO NOTHING'
+
+    global conn
+    cur = conn.cursor()
+    for u in users:
+        logging.info('Inserting %s', u)
+        cur.execute(sql, u)
+
+    conn.commit()
+
+
 def main() -> None:
     init()
 
     while True:
-        user: str = get_random_user()
-        get_friends(user)
+        user: Tuple[int, str] = get_random_user()
+        users: List[Tuple[int, str]] = get_friends(user)
+        write_sql(users)
 
         sleep()
 
