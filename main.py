@@ -9,7 +9,6 @@ from typing import List
 from typing import Optional
 
 
-import lib
 import lib.duolingo as duolingo
 
 
@@ -49,6 +48,7 @@ def init_env() -> None:
 
 def init_atexit() -> None:
     def end():
+        conn.close()
         logging.info('bye')
 
     atexit.register(end)
