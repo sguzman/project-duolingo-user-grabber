@@ -3,11 +3,8 @@ import json
 import logging
 import os
 import psycopg2
-import typing
-from typing import Dict
+import time
 from typing import List
-from typing import Optional
-
 
 import lib.duolingo as duolingo
 
@@ -37,6 +34,8 @@ def init_sql() -> None:
 
 
 def init_env() -> None:
+    global env
+
     for e in env['env']:
         if e in env:
             msg: str = 'Found env var "%s" in file with default value "%s"'
@@ -58,6 +57,7 @@ def init_duo_log() -> None:
     usr: str = env['DUO_USER']
     pss: str = env['DUO_PASS']
 
+    global lingo
     lingo = duolingo.Duolingo(username=usr,
                               password=pss,
                               session_file=sess_file)
@@ -92,8 +92,47 @@ def init() -> None:
     init_sql()
 
 
+def sleep() -> None:
+    logging.info('Sleeping for %d', env['sleep'])
+    time.sleep(env['sleep'])
+
+
+def get_random_user() -> str:
+    cur = conn.cursor()
+    sql = 'SELECT username FROM duolingo.data.users ORDER BY RANDOM() LIMIT 1'
+    cur.execute(sql)
+
+    rows = cur.fetchall()
+    user = rows[0][0]
+    logging.info('Got random user %s', user)
+
+    return user
+
+
+def get_friends(name: str) -> List[str]:
+    logging.info('Querying friends for %s', name)
+
+    lingo.set_username(name)
+    friends_resp = lingo.get_friends()
+    friends: List[str] = []
+
+    for fob in friends_resp:
+        fob: str = fob['username']
+        friends.append(fob)
+
+    logging.info('Found friends:')
+    logging.info(friends)
+    return friends
+
+
 def main() -> None:
     init()
+
+    while True:
+        user: str = get_random_user()
+        get_friends(user)
+
+        sleep()
 
 
 if __name__ == '__main__':
