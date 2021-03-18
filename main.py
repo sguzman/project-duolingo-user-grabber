@@ -135,11 +135,11 @@ def get_friends(tup: Tuple[int, str]) -> List[Tuple[int, str]]:
         user: str = fob['username']
         idd: int = fob['id']
         tup: Tuple[int, str] = (idd, user)
+        logging.info('Found friend %d, %s for %s', idd, user, name)
 
         friends.append(tup)
 
-    logging.info('Found friends:')
-    logging.info(friends)
+    logging.info('Found friends %d friends for %s', len(friends), name)
     return friends
 
 
