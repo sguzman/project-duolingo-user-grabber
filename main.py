@@ -130,23 +130,20 @@ def get_friends(tup: Tuple[int, str]) -> List[Tuple[int, str]]:
     logging.info('Querying friends for %s', tup)
 
     lingo.set_username(name)
-    try:
-        friends_resp = lingo.get_friends()
-        friends: List[Tuple[int, str]] = []
 
-        for fob in friends_resp:
-            user: str = fob['username']
-            idd: int = fob['id']
-            tup: Tuple[int, str] = (idd, user)
-            logging.info('Found friend %d, %s for %s', idd, user, name)
+    friends_resp = lingo.get_friends()
+    friends: List[Tuple[int, str]] = []
 
-            friends.append(tup)
+    for fob in friends_resp:
+        user: str = fob['username']
+        idd: int = fob['id']
+        tup: Tuple[int, str] = (idd, user)
+        logging.info('Found friend %d, %s for %s', idd, user, name)
 
-        logging.info('Found friends %d friends for %s', len(friends), name)
-        return friends
-    except:
-        logging.info('Trying again')
-        return get_friends()
+        friends.append(tup)
+
+    logging.info('Found friends %d friends for %s', len(friends), name)
+    return friends
 
 
 def write_sql(users: List[Tuple[int, str]]) -> None:
@@ -168,11 +165,14 @@ def main() -> None:
     init()
 
     while True:
-        user: Tuple[int, str] = get_random_user()
-        users: List[Tuple[int, str]] = get_friends(user)
-        write_sql(users)
+        try:
+            user: Tuple[int, str] = get_random_user()
+            users: List[Tuple[int, str]] = get_friends(user)
+            write_sql(users)
 
-        sleep()
+            sleep()
+        except Exception as e:
+            logging.warning(e)
 
 
 if __name__ == '__main__':
