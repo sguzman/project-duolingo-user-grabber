@@ -50,7 +50,9 @@ def init_atexit() -> None:
     global conn
 
     def end():
-        conn.close()
+        if conn is not None:
+            logging.info('Closing DB connection')
+            conn.close()
         logging.info('bye')
 
     atexit.register(end)
@@ -128,19 +130,23 @@ def get_friends(tup: Tuple[int, str]) -> List[Tuple[int, str]]:
     logging.info('Querying friends for %s', tup)
 
     lingo.set_username(name)
-    friends_resp = lingo.get_friends()
-    friends: List[Tuple[int, str]] = []
+    try:
+        friends_resp = lingo.get_friends()
+        friends: List[Tuple[int, str]] = []
 
-    for fob in friends_resp:
-        user: str = fob['username']
-        idd: int = fob['id']
-        tup: Tuple[int, str] = (idd, user)
-        logging.info('Found friend %d, %s for %s', idd, user, name)
+        for fob in friends_resp:
+            user: str = fob['username']
+            idd: int = fob['id']
+            tup: Tuple[int, str] = (idd, user)
+            logging.info('Found friend %d, %s for %s', idd, user, name)
 
-        friends.append(tup)
+            friends.append(tup)
 
-    logging.info('Found friends %d friends for %s', len(friends), name)
-    return friends
+        logging.info('Found friends %d friends for %s', len(friends), name)
+        return friends
+    except:
+        logging.info('Trying again')
+        return get_friends()
 
 
 def write_sql(users: List[Tuple[int, str]]) -> None:
