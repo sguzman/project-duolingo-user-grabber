@@ -93,7 +93,7 @@ def init_log() -> None:
     global v
 
     logging.basicConfig(
-        format=f'[v={v}] {name} %(asctime)s %(levelname)-8s %(message)s',
+        format=f'[{v}] {name} %(asctime)s %(levelname)-8s %(message)s',
         level=logging.DEBUG,
         datefmt='%Y-%m-%d %H:%M:%S')
 
