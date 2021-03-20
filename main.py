@@ -97,8 +97,8 @@ def init_logging() -> None:
 def init_json() -> None:
     global env
 
-    json_file = open(env_json_file, 'r')
     try:
+        json_file = open(env_json_file, 'r')
         env = json.load(json_file)
     except FileNotFoundError as fe:
         logging.warning('Did not find env json file - using env vars')
