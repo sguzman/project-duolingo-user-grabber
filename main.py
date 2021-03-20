@@ -12,9 +12,19 @@ import lib.duolingo as duolingo
 
 env_json_file: str = os.path.abspath('./env.json')
 sess_file: str = os.path.abspath('./duo.sess')
-env = {}
 lingo = None
 conn = None
+
+env = {}
+env_list: List[str] = [
+    'DUO_USER',
+    'DUO_PASS',
+    'PG_PORT',
+    'PG_HOST',
+    'PG_DB',
+    'PG_USER',
+    'PG_PASS'
+]
 
 
 def init_sql() -> None:
@@ -37,7 +47,7 @@ def init_sql() -> None:
 def init_env() -> None:
     global env
 
-    for e in env['env']:
+    for e in env_list:
         if e in env:
             msg: str = 'Found env var "%s" in file with default value "%s"'
             logging.info(msg, e, env[e])
@@ -88,7 +98,10 @@ def init_json() -> None:
     global env
 
     json_file = open(env_json_file, 'r')
-    env = json.load(json_file)
+    try:
+        env = json.load(json_file)
+    except FileNotFoundError as fe:
+        logging.warning('Did not find env json file - using env vars')
 
 
 def init() -> None:
