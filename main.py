@@ -123,7 +123,7 @@ def init() -> None:
 def sleep() -> None:
     global env
 
-    log.info('Sleeping for %d', env['sleep'])
+    log.info('Sleeping for %s', env['sleep'])
     time.sleep(env['sleep'])
 
 
