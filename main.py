@@ -84,7 +84,12 @@ def init_duo_log() -> None:
 
 def init_logging() -> None:
     global env
-    name: str = env['name']
+
+    name = ''
+    if name in env:
+        name = env['name']
+    else:
+        name = os.environ['name']
 
     logging.basicConfig(
         format=f'{name} %(asctime)s %(levelname)-8s %(message)s',
