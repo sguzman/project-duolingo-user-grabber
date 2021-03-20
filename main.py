@@ -12,8 +12,12 @@ import lib.duolingo as duolingo
 
 env_json_file: str = os.path.abspath('./env.json')
 sess_file: str = os.path.abspath('./duo.sess')
+name: str = 'project-duolingo-user-grabber'
+v: str = 'v1'
+
 lingo = None
 conn = None
+log = None
 
 env = {}
 env_list: List[str] = [
@@ -23,7 +27,8 @@ env_list: List[str] = [
     'PG_HOST',
     'PG_DB',
     'PG_USER',
-    'PG_PASS'
+    'PG_PASS',
+    'sleep'
 ]
 
 
@@ -41,7 +46,7 @@ def init_sql() -> None:
                             host=host,
                             port=port)
 
-    logging.info('Successfully connected to db')
+    log.info('Successfully connected to db')
 
 
 def init_env() -> None:
@@ -50,10 +55,10 @@ def init_env() -> None:
     for e in env_list:
         if e in env:
             msg: str = 'Found env var "%s" in file with default value "%s"'
-            logging.info(msg, e, env[e])
+            log.info(msg, e, env[e])
         else:
             env[e] = os.environ[e]
-            logging.info('Found env var "%s" with value "%s"', e, env[e])
+            log.info('Found env var "%s" with value "%s"', e, env[e])
 
 
 def init_atexit() -> None:
@@ -61,9 +66,9 @@ def init_atexit() -> None:
 
     def end():
         if conn is not None:
-            logging.info('Closing DB connection')
+            log.info('Closing DB connection')
             conn.close()
-        logging.info('bye')
+        log.info('bye')
 
     atexit.register(end)
 
@@ -78,25 +83,22 @@ def init_duo_log() -> None:
     lingo = duolingo.Duolingo(username=usr,
                               password=pss,
                               session_file=sess_file)
-    logging.info('Success logged in with user "%s" and pass "%s"', usr, pss)
-    logging.info(lingo)
+    log.info('Success logged in with user "%s" and pass "%s"', usr, pss)
+    log.info(lingo)
 
 
-def init_logging() -> None:
-    global env
-
-    name = ''
-    if name in env:
-        name = env['name']
-    else:
-        name = os.environ['name']
+def init_log() -> None:
+    global log
+    global name
+    global v
 
     logging.basicConfig(
-        format=f'{name} %(asctime)s %(levelname)-8s %(message)s',
-        level=logging.INFO,
+        format=f'[v={v}] {name} %(asctime)s %(levelname)-8s %(message)s',
+        level=logging.DEBUG,
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    logging.info('hi')
+    log = logging.getLogger(name)
+    log.info('hi')
 
 
 def init_json() -> None:
@@ -106,12 +108,12 @@ def init_json() -> None:
         json_file = open(env_json_file, 'r')
         env = json.load(json_file)
     except FileNotFoundError as fe:
-        logging.warning('Did not find env json file - using env vars')
+        log.warning('Did not find env json file - using env vars')
 
 
 def init() -> None:
+    init_log()
     init_json()
-    init_logging()
     init_env()
     init_atexit()
     init_duo_log()
@@ -121,7 +123,7 @@ def init() -> None:
 def sleep() -> None:
     global env
 
-    logging.info('Sleeping for %d', env['sleep'])
+    log.info('Sleeping for %d', env['sleep'])
     time.sleep(env['sleep'])
 
 
@@ -136,7 +138,7 @@ def get_random_user() -> Tuple[int, str]:
 
     rows = cur.fetchall()
     user = rows[0]
-    logging.info('Got random user %s', user)
+    log.info('Got random user %s', user)
 
     return user
 
@@ -145,7 +147,7 @@ def get_friends(tup: Tuple[int, str]) -> List[Tuple[int, str]]:
     global lingo
 
     name: str = tup[1]
-    logging.info('Querying friends for %s', tup)
+    log.info('Querying friends for %s', tup)
 
     lingo.set_username(name)
 
@@ -156,16 +158,16 @@ def get_friends(tup: Tuple[int, str]) -> List[Tuple[int, str]]:
         user: str = fob['username']
         idd: int = fob['id']
         tup: Tuple[int, str] = (idd, user)
-        logging.info('Found friend %d, %s for %s', idd, user, name)
+        log.info('Found friend %d, %s for %s', idd, user, name)
 
         friends.append(tup)
 
-    logging.info('Found friends %d friends for %s', len(friends), name)
+    log.info('Found friends %d friends for %s', len(friends), name)
     return friends
 
 
 def write_sql(users: List[Tuple[int, str]]) -> None:
-    logging.info('Writing new users down')
+    log.info('Writing new users down')
     sql = 'INSERT INTO ' \
           'duolingo.data.users (id, username) VALUES (%s, %s) ' \
           'ON CONFLICT DO NOTHING'
@@ -173,7 +175,7 @@ def write_sql(users: List[Tuple[int, str]]) -> None:
     global conn
     cur = conn.cursor()
     for u in users:
-        logging.info('Inserting %s', u)
+        log.info('Inserting %s', u)
         cur.execute(sql, u)
 
     conn.commit()
@@ -190,7 +192,7 @@ def main() -> None:
 
             sleep()
         except Exception as e:
-            logging.warning(e)
+            log.warning(e)
 
 
 if __name__ == '__main__':
