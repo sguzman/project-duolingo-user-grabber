@@ -124,7 +124,7 @@ def sleep() -> None:
     global env
 
     log.info('Sleeping for %s', env['sleep'])
-    time.sleep(env['sleep'])
+    time.sleep(int(env['sleep']))
 
 
 def get_random_user() -> Tuple[int, str]:
